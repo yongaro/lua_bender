@@ -288,3 +288,40 @@ Further documentation can be found in the other headers for more in depth under
 ## **License**
 
 This project is distributed under the **Apache License 2.0** see the complete text in the **LICENSE** text file for more information.
+
+## **Bonus for CMake users.**
+
+As of **Lua 5.3.5**, the C API comes with only support for the **GNU Make** build system which is quite inconvenient for cross-platform projects.
+
+Below is quick and dirty **CMakeLists.txt** for the beginners who would want a quick start with a Lua static build using CMake.  
+
+```CMake
+cmake_minimum_required(VERSION 3.12)
+
+file(GLOB_RECURSE SRC_LIB src/*.c)
+
+add_library(liblua_static STATIC ${SRC_LIB})
+target_link_libraries(liblua_static ${LIBS})
+```
+
+The Lua C source code will comme with the following architecture : 
+
+root /
+- doc / 
+- src /
+- Makefile
+- README
+
+Simply put this script to the root directory and add it to your main project along with the **src** to your include system.
+
+```CMake
+set(LUA_ROOT "${THIRD_PARTIES_ROOT}/lua-5.3.5")
+add_subdirectory("${LUA_ROOT}")
+include_directories("${LUA_ROOT}/src")
+```
+
+## **Other projects and contact**
+
+If this library was of some use, you may be interested in some of my others projects described on my github page, along with informations to contact me if necessary.  
+
+[https://yongaro.github.io/](https://yongaro.github.io/)
