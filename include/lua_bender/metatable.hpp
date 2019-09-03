@@ -18,16 +18,8 @@ namespace lua_bender{
         virtual void set_function(const char* name, lua_CFunction function) = 0;
         virtual void remove_function(const char* name) = 0;
         virtual void create_metatable(lua_State* L) = 0;
-    };
 
-
-    template<class T>
-    struct LuaClassMetatable : public LuaMetatable{
-        std::unordered_map<std::string, luaL_Reg> m_registry;
-
-        LuaClassMetatable(): m_registry(){}
-
-        template<typename ...Args>
+        template<typename T, typename ...Args>
         static int create_instance(lua_State* L){
             std::string type_name = get_luaL_type_name<T>();
             int first_index = 1;
@@ -36,7 +28,7 @@ namespace lua_bender{
             return 1;
         }
 
-
+        template<typename T>
         static int destroy_instance(lua_State* L){
             user_data* udata = user_data::check(L, 1);
             if( udata != nullptr ){
@@ -46,6 +38,19 @@ namespace lua_bender{
                 delete udata;
             }
             return 0;
+        }
+    };
+
+
+    template<class T>
+    struct LuaClassMetatable : public LuaMetatable{
+        std::unordered_map<std::string, luaL_Reg> m_registry;
+
+        LuaClassMetatable(): m_registry(){}
+        LuaClassMetatable(int value_count, luaL_Reg* reg): m_registry(){
+            for(int i = 0; i < value_count; ++i){
+                set_function(reg[i].name, reg[i].func);
+            }
         }
 
         virtual void set_function(const char* name, lua_CFunction function){

@@ -13,17 +13,28 @@ namespace lua_bender{
         }
     }
 
+    void replace_all(std::string& data, std::string toSearch, std::string replaceStr){
+        // Get the first occurrence
+        size_t pos = data.find(toSearch);
+
+        // Repeat till end is reached
+        while( pos != std::string::npos){
+            // Replace this occurrence of Sub String
+            data.replace(pos, toSearch.size(), replaceStr);
+            // Get the next occurrence from the current position
+            pos =data.find(toSearch, pos + replaceStr.size());
+        }
+    }
+
+
     template<class T>
     std::string get_type_name(){
         std::string name = typeid(T).name();
         // On MSVC at least the types are mangled with those prefixes.
         erase_sub_strings(name, "struct ");
         erase_sub_strings(name, "class ");
-        // Finally remove all the namespaces.
-        size_t index = name.find_last_of(':');
-        if( index < name.size() ){
-            return name.substr(index+1);
-        }
+        // replace the namespace sperator with underscore to avoid conflicts with lua syntax.
+        replace_all(name, "::", "_");
         return name;
     }
 

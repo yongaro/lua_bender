@@ -17,7 +17,7 @@ namespace lua_bender{
         }
 
         static void do_file(lua_State* L, const char* file){
-            int res = luaL_loadfile(L, file);
+            int res = luaL_dofile(L, file);
             if( res != LUA_OK ){
                 if( lua_pcall(L, 0, LUA_MULTRET, 0) ){
                     printf("Error: %s \n", lua_tostring(L, -1));

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "basis.hpp"
+#include "user_data.hpp"
 
 
 
@@ -51,16 +52,16 @@ namespace lua_bender{
     template<typename Fn, Fn func, typename R, typename ...Args>
     struct function{
         static int adapter(lua_State* L){
-            int first_index = 1;
-            return value< typename add_const_ref<R>::type >::push(L, func(value< typename add_const_ref<Args>::type >::check(L, first_index++)...));
+            int first_index = -1;
+            return value< typename add_const_ref<R>::type >::push(L, func(value< typename add_const_ref<Args>::type >::check(L, first_index--)...));
         }
     };
 
     template<typename Fn, Fn func, typename ...Args>
     struct function<Fn, func, void, Args...>{
         static int adapter(lua_State* L){
-            int first_index = 1;
-            func(lua_bender::value< typename add_const_ref<Args>::type >::check(L, first_index++)...);
+            int first_index = -1;
+            func(lua_bender::value< typename add_const_ref<Args>::type >::check(L, first_index--)...);
             return 0;
         }
     };
@@ -72,14 +73,14 @@ namespace lua_bender{
     template<class C, typename Fn, Fn func, typename R, typename ...Args>
     struct member_function{
         static int adapter(lua_State* L){
-            int first_index = 1;
-            user_data* udata = user_data::check(L, first_index++);
+            user_data* udata = user_data::check(L, 1);
             if( udata == nullptr || udata->m_data == nullptr ){
                 LUA_BENDER_ERROR("Could not get the caller from the lua stack");
             }
 
             C* caller = static_cast<C*>(udata->m_data);
-            return value< typename add_const_ref<R>::type >::push(L, (caller->*func)(value< typename add_const_ref<Args>::type >::check(L, first_index++)...));
+            int first_index = -1;
+            return value< typename add_const_ref<R>::type >::push(L, (caller->*func)(value< typename add_const_ref<Args>::type >::check(L, first_index--)...));
         }
     };
 
@@ -87,15 +88,15 @@ namespace lua_bender{
     template<class C, typename Fn, Fn func, typename ...Args>
     struct member_function<C, Fn, func, void, Args...>{
         static int adapter(lua_State* L){
-            int first_index = 1;
-            user_data* udata = user_data::check(L, first_index++);
+            user_data* udata = user_data::check(L, 1);
             if( udata == nullptr || udata->m_data == nullptr ){
                 LUA_BENDER_ERROR("Could not get a caller from the lua stack");
                 return 0;
             }
 
             C* caller = static_cast<C*>(udata->m_data);
-            (caller->*func)(value< typename add_const_ref<Args>::type >::check(L, first_index++)...);
+            int first_index = -1;
+            (caller->*func)(value< typename add_const_ref<Args>::type >::check(L, first_index--)...);
             return 0;
         }
     };

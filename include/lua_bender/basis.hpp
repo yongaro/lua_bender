@@ -84,7 +84,7 @@ namespace lua_bender{
     };
 
     template<>
-    struct value<const char*>{
+    struct value<const char* const&>{
         static const char* check(lua_State* L, int index){ return lua_tolstring(L, index, NULL); }
 
         static int push(lua_State* L, const char* value){

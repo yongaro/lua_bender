@@ -34,8 +34,8 @@ namespace lua_bender{
             std::cout << "This is test_struct s_function" << std::endl;
         }
 
-        static int s_function2(){
-            std::cout << "This is test_struct s_function" << std::endl;
+        static int s_function2(float val1, double val2){
+            std::cout << "This is test_struct s_function2 " << val1 << " "  << val2 << std::endl;
             return 42;
         }
 
@@ -106,9 +106,9 @@ namespace lua_bender{
 
     const char* class_binding_script = "do\n"
                                        "print(\"Testing the class test_struct bindings\") \n"
-                                       "test_object = test_struct.new() \n"
+                                       "test_object = lua_bender_test_struct.new() \n"
                                        "print(\"Setting object values\")\n"
-                                       "test_object:set_int_value( test_struct.s_function2(45) )\n"
+                                       "test_object:set_int_value( lua_bender_test_struct.s_function2(45, 30) )\n"
                                        "test_object:set_number_value(53)\n"
                                        "test_object:set_str_value( \"This is another test string.\" )\n"
                                        "print(\"Checking object values\")\n"
@@ -116,9 +116,9 @@ namespace lua_bender{
                                        "print(test_object:get_number_value())\n"
                                        "print(test_object:get_str_value())\n"
                                        "print(getmetatable(test_object))\n"
-                                       "print(test_struct.__name)\n"
+                                       "print(lua_bender_test_struct.__name)\n"
                                        "\n"
-                                       "test_object_2 = test_struct.new()\n"
+                                       "test_object_2 = lua_bender_test_struct.new()\n"
                                        "test_object_2:test_modify_ptr(test_object)\n"
                                        "print(test_object:get_int_value())\n"
                                        "test_object_2:test_modify_ref(test_object)\n"
@@ -135,12 +135,12 @@ namespace lua_bender{
         test_lib.set_function("test_template_float",     lua_bender_function(test_template<float>, float, const float&));
         test_lib.set_function("test_template_str",       lua_bender_function(test_template<std::string>, std::string, const std::string&));
         test_lib.set_function("test_struct_s_function",  lua_bender_function(test_struct::s_function, void));
-        test_lib.set_function("test_struct_s_function2", lua_bender_function(test_struct::s_function2, int));
+        test_lib.set_function("test_struct_s_function2", lua_bender_function(test_struct::s_function2, int, float, double));
 
         // Creating a new metatable for the library
         std::shared_ptr<LuaMetatable> test_table_ptr = std::make_shared<LuaClassMetatable<test_struct>>();
-        test_table_ptr->set_function("new", lua_bender::LuaClassMetatable<test_struct>::create_instance);
-        test_table_ptr->set_function("__gc", lua_bender::LuaClassMetatable<test_struct>::destroy_instance);
+        test_table_ptr->set_function("new", lua_bender::LuaMetatable::create_instance<test_struct>);
+        test_table_ptr->set_function("__gc", lua_bender::LuaMetatable::destroy_instance<test_struct>);
 
         // mutator functions
         test_table_ptr->set_function("set_str_value",
@@ -172,7 +172,7 @@ namespace lua_bender{
 
         // static functions
         test_table_ptr->set_function("s_function", lua_bender_function(test_struct::s_function, void));
-        test_table_ptr->set_function("s_function2", lua_bender_function(test_struct::s_function2, int));
+        test_table_ptr->set_function("s_function2", lua_bender_function(test_struct::s_function2, int, float, double));
 
         test_lib.set_metatable(get_luaL_type_name<test_struct>().c_str(), test_table_ptr);
 
