@@ -33,8 +33,8 @@ that will handle, argument loading from the Lua state, function dispatching, and
 > }
 >
 > int some_func_binding(lua_State* L){
->     double a1  = luaL_checknumber(L, 1);
->     int    a2  = luaL_checkinteger(L, 2);
+>     double a1  = luaL_checknumber(L, -1);
+>     int    a2  = luaL_checkinteger(L, -2);
 >     double res = some_func(a1, a2);
 >     lua_pushnumber(L, res);
 >     return 1; // The number of returned values.
