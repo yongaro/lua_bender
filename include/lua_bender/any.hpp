@@ -22,6 +22,7 @@ namespace lua_bender{
 
             res.clear();
             res.resize(returned_value_count);
+            // Reading the Lua stack from bottom to top.
             for(int i = 0; i < returned_value_count; ++i){
                 int type = lua_type(L, i+1);
                 res[i].m_lua_type = type;
@@ -75,13 +76,13 @@ namespace lua_bender{
                     LUA_BENDER_LOG("any is type NONE");
                     break;
                 case LUA_TNUMBER:
-                    LUA_BENDER_LOG("any is type NUMBER");
+                    LUA_BENDER_LOG("any is type NUMBER: " << m_number);
                     break;
                 case LUA_TTABLE:
                     LUA_BENDER_LOG("any is type TABLE");
                     break;
                 case LUA_TSTRING:
-                    LUA_BENDER_LOG("any is type STRING");
+                    LUA_BENDER_LOG("any is type STRING: \"" << m_str << '"');
                     break;
                 case LUA_TUSERDATA:
                     LUA_BENDER_LOG("any is type USER DATA");
@@ -93,7 +94,7 @@ namespace lua_bender{
                     LUA_BENDER_LOG("any is type THREAD");
                     break;
                 case LUA_TBOOLEAN:
-                    LUA_BENDER_LOG("any is type BOOLEAN");
+                    LUA_BENDER_LOG("any is type BOOLEAN: " << m_number);
                     break;
                 case LUA_TFUNCTION:
                     LUA_BENDER_LOG("any is type FUNCTION");

@@ -17,14 +17,14 @@
     << "file : " << __FILE__ << std::endl\
     << "line " << __LINE__ << " in " << __func__ << "()"\
     << std::endl << msg << std::endl;\
-    exit(EXIT_FAILURE);
+    exit(EXIT_FAILURE)
 
 #define LUA_BENDER_WARNING(msg) std::cerr << "[LUA_BENDER_WARNING] " << std::endl\
     << "file : " << __FILE__ << std::endl\
     << "line " << __LINE__ << " in " << __func__ << "()"\
-    << std::endl << msg << std::endl;
+    << std::endl << msg << std::endl
 
-#define LUA_BENDER_LOG(msg) std::cout << "[LUA_BENDER] " << msg << std::endl;
+#define LUA_BENDER_LOG(msg) std::cout << "[LUA_BENDER] " << msg << std::endl
 
 
 namespace lua_bender{
@@ -45,10 +45,10 @@ namespace lua_bender{
 
     template<>
     struct value<const float&>{
-        static float check(lua_State* L, int index){ return luaL_checknumber(L, index); }
+        static float check(lua_State* L, int index){ return float(luaL_checknumber(L, index)); }
 
         static int push(lua_State* L, float value){
-            lua_pushnumber(L, value);
+            lua_pushnumber(L, double(value));
             return 1;
         }
     };
@@ -65,7 +65,7 @@ namespace lua_bender{
 
     template<>
     struct value<const int&>{
-        static int check(lua_State* L, int index){ return luaL_checkinteger(L, index); }
+        static int check(lua_State* L, int index){ return int(luaL_checkinteger(L, index)); }
 
         static int push(lua_State* L, int value){
             lua_pushinteger(L, value);
@@ -85,7 +85,7 @@ namespace lua_bender{
 
     template<>
     struct value<const char* const&>{
-        static const char* check(lua_State* L, int index){ return lua_tolstring(L, index, NULL); }
+        static const char* check(lua_State* L, int index){ return lua_tolstring(L, index, nullptr); }
 
         static int push(lua_State* L, const char* value){
             lua_pushstring(L, value);
@@ -97,7 +97,7 @@ namespace lua_bender{
     template<>
     struct value<const std::string&>{
         static std::string check(lua_State* L, int index){
-            return std::string(lua_tolstring(L, index, NULL));
+            return std::string(lua_tolstring(L, index, nullptr));
         }
 
         static int push(lua_State* L, const std::string& value){

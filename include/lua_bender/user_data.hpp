@@ -4,61 +4,30 @@
 
 #include "basis.hpp"
 
+#define REGISTER_LUA_BENDER_UDATA_TYPE_NAME(type, name)\
+    template<> std::string lua_bender::user_data_type_name<type>::s_name = name
+
+
 namespace lua_bender{
-    void erase_sub_strings(std::string& main, const std::string& sub){
-        size_t pos = std::string::npos;
-
-        while( (pos  = main.find(sub) )!= std::string::npos ){
-            main.erase(pos, sub.length());
-        }
-    }
-
-    void replace_all(std::string& data, std::string toSearch, std::string replaceStr){
-        // Get the first occurrence
-        size_t pos = data.find(toSearch);
-
-        // Repeat till end is reached
-        while( pos != std::string::npos){
-            // Replace this occurrence of Sub String
-            data.replace(pos, toSearch.size(), replaceStr);
-            // Get the next occurrence from the current position
-            pos =data.find(toSearch, pos + replaceStr.size());
-        }
-    }
-
-
-    template<class T>
-    std::string get_type_name(){
-        std::string name = typeid(T).name();
-        // On MSVC at least the types are mangled with those prefixes.
-        erase_sub_strings(name, "struct ");
-        erase_sub_strings(name, "class ");
-        // replace the namespace sperator with underscore to avoid conflicts with lua syntax.
-        replace_all(name, "::", "_");
-        return name;
-    }
-
-
-    template<class T>
-    std::string get_luaL_type_name(){
-        // If by any chance you want to add lua_L to the unmangled type name, it should be done here.
-        return get_type_name<T>();
-    }
-
     struct user_data{
         void*       m_data;
         bool        m_garbage_collected;
-        std::string m_type_name;
 
         static inline void push(lua_State* L, void* data, const char* type_name, bool garbage_collected = false){
             user_data** udata = (user_data**)lua_newuserdata(L, sizeof(user_data*));
             *udata = new user_data();
             (*udata)->m_data = data;
-            (*udata)->m_type_name = type_name;
             (*udata)->m_garbage_collected = garbage_collected;
 
             luaL_getmetatable(L, type_name);
             lua_setmetatable(L, -2);
+        }
+
+        static inline void push(lua_State* L, void* data){
+            user_data** udata = (user_data**)lua_newuserdata(L, sizeof(user_data*));
+            *udata = new user_data();
+            (*udata)->m_data = data;
+            (*udata)->m_garbage_collected = false;
         }
 
         static inline user_data* check(lua_State* L, int index){
@@ -66,7 +35,8 @@ namespace lua_bender{
         }
     };
 
-
+    template<class C>
+    struct user_data_type_name{ static std::string s_name; };
 
 
     template<class C>
@@ -77,7 +47,7 @@ namespace lua_bender{
         }
 
         static int push(lua_State* L, C& value){
-            user_data::push(L, &value, get_luaL_type_name<C>().c_str(), false);
+            user_data::push(L, &value, user_data_type_name<C>::s_name.c_str(), false);
             return 1;
         }
     };
@@ -90,7 +60,7 @@ namespace lua_bender{
         }
 
         static int push(lua_State* L, C& value){
-            user_data::push(L, &value, get_luaL_type_name<C>().c_str(), false);
+            user_data::push(L, &value, user_data_type_name<C>::s_name.c_str(), false);
             return 1;
         }
     };
@@ -107,7 +77,7 @@ namespace lua_bender{
         }
 
         static int push(lua_State* L, C* value){
-            user_data::push(L, value, get_luaL_type_name<C>().c_str(), false);
+            user_data::push(L, value, user_data_type_name<C>::s_name.c_str(), false);
             return 1;
         }
     };

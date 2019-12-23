@@ -10,16 +10,29 @@
 /**
   * This file contains function adapters for both classic functions (i.e everything except non static members)
   * with the <function> class, and member functions with the <member_function> class.
-  *
-  *
-  *
-  *
-  **/
-
+  */
 
 // These macros conveniently wrap the two adapter templates and reduce the verbosity.
 // Both the templates and macros return a lua_CFuntion and need to be used with a lua_Reg or push_function
 // or the metatable struct to wrap a class member functions.
+#ifdef __linux__
+// On linux the __VA_ARGS__ doesn't remove the previous ',' if no argument were given thus explaining the
+// "##" prefix on some of the __VA_ARGS__ use.
+
+#define lua_bender_function(func, ret_type, ...)\
+    lua_bender::function<ret_type(*)(__VA_ARGS__), func, ret_type, ##__VA_ARGS__>::adapter
+
+#define lua_bender_member_function(C, Fn, RT, ...)\
+    lua_bender::member_function<C, RT(C::*)(__VA_ARGS__), &C::Fn, RT, ##__VA_ARGS__>::adapter
+
+#define lua_bender_const_member_function(C, Fn, RT, ...)\
+    lua_bender::member_function<C, RT(C::*)(__VA_ARGS__) const, &C::Fn, RT, ##__VA_ARGS__>::adapter
+
+#define lua_bender_generate_initializer(type, ...)\
+    lua_bender::function<void(*)(type&, ##__VA_ARGS__), lua_bender::generic_set_object<type, ##__VA_ARGS__>, void, type&, ##__VA_ARGS__>::adapter
+
+#else
+
 #define lua_bender_function(func, ret_type, ...)\
     lua_bender::function<ret_type(*)(__VA_ARGS__), func, ret_type, __VA_ARGS__>::adapter
 
@@ -29,11 +42,19 @@
 #define lua_bender_const_member_function(C, Fn, RT, ...)\
     lua_bender::member_function<C, RT(C::*)(__VA_ARGS__) const, &C::Fn, RT, __VA_ARGS__>::adapter
 
+#define lua_bender_generate_initializer(type, ...)\
+    lua_bender::function<void(*)(type&, __VA_ARGS__), lua_bender::generic_set_object<type, __VA_ARGS__>, void, type&, __VA_ARGS__>::adapter
+
+#endif
+
+// These other macros shorten the definition accessors and mutators for a given class member
+#define lua_bender_generate_accessor(type, member_type, member_name)\
+    lua_bender::function<member_type(*)(type&), lua_bender::accessor<type, member_type, offsetof(type, member_name)>::get, member_type, type&>::adapter
+
+#define lua_bender_generate_mutator(type, member_type, member_name)\
+    lua_bender::function<void(*)(type&, const member_type&), lua_bender::mutator<type, member_type, offsetof(type, member_name)>, void, type&, const member_type&>::adapter
+
 namespace lua_bender{
-
-
-
-
     inline void bind_function(lua_State* L, const char* name, lua_CFunction func){
         lua_pushcfunction(L, func);
         lua_setglobal(L, name);
@@ -48,6 +69,9 @@ namespace lua_bender{
     struct remove_const_ref{
         typedef typename std::remove_reference< typename std::remove_const<T>::type >::type type;
     };
+
+
+
 
     template<typename Fn, Fn func, typename R, typename ...Args>
     struct function{
@@ -101,27 +125,39 @@ namespace lua_bender{
         }
     };
 
+    template<typename T>
+    void generic_set(uint8_t*& ptr, const T& value){
+        T* member = reinterpret_cast<T*>(ptr);
+        *member = value;
+        ptr += sizeof(T);
+    }
 
+    /** @brief This function is a simple generator for a complete set of the object. */
+    template<class C, typename ...Args>
+    void generic_set_object(C& obj, Args... args){
+        uint8_t* base_ptr = reinterpret_cast<uint8_t*>(&obj);
+        // The is_polymorphic is a C++11 standard way to check for a vtable at the beginning of the object (size of a pointer).
+        base_ptr += std::is_polymorphic<C>::value ? sizeof(uint8_t*) : 0;
+        (generic_set<Args>(base_ptr, args), ...);
+    }
 
-    // Old snippet kept for the records because it's a little bit technical.
-    // This versions used to differ the argument loading by building a tuple.
-    // Eventually this was replaced by a direct due to some probleme loading strings and objects
-    // which were flushed before being used.
-    //    template<int ...>
-    //    struct seq { };
+    /** @brief Generate a copy accessor to a data member of a given structure using pointer logic. */
+    template<class C, typename mtype, int offset>
+    struct accessor{
+        static mtype get(C& obj){
+            uint8_t* base_ptr = reinterpret_cast<uint8_t*>(&obj);
+            mtype* member = reinterpret_cast<mtype*>(base_ptr + offset);
+            return *member;
+        }
+    };
 
-    //    template<int N, int ...S>
-    //    struct gens : gens<N-1, N-1, S...> { };
-
-    //    template<int ...S>
-    //    struct gens<0, S...> {
-    //        typedef seq<S...> type;
-    //    };
-
-    //    template<int ...S>
-    //    static R call_function(std::tuple<Args...>& args, lua_bender::seq<S...>){
-    //         return func(std::get<S>(args) ...);
-    //    }
+    /** @brief Generate a mutator to a data member of a given structure using pointer logic. */
+    template<class C, typename mtype, int offset>
+    void mutator(C& obj, const mtype& value){
+        uint8_t* base_ptr = reinterpret_cast<uint8_t*>(&obj);
+        mtype* member = reinterpret_cast<mtype*>(base_ptr + offset);
+        *member = value;
+    }
 }
 
 
