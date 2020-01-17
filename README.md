@@ -1,10 +1,13 @@
-# Lua Bender
+# Lua Bender [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
+[![Generic badge](https://img.shields.io/badge/Android%2010%20(API%2029%20+%20Clang%20from%20ndk%20r20b)-success-yellowgreen.svg)](https://shields.io/) &nbsp; 
+[![Generic badge](https://img.shields.io/badge/Linux%20(GCC%209.2.0)-success-yellowgreen.svg)](https://shields.io/) &nbsp; 
+[![Generic badge](https://img.shields.io/badge/Windows%20(MSVC%2019.22.27905)-success-yellowgreen.svg)](https://shields.io/)  
 
 ## **Description**
 
-Lua bender is a header only library that helps generate bindings of C++ functions and classes to Lua.
-
-This project provides templates and macros to handle the automatic generation of lua_CFunction and optionnal object oriented structures to wrap up the Lua C API concepts.
+Lua bender is a crossplatform header only library that helps generate bindings of C++ functions and classes to Lua.  
+This project provides templates and macros to handle the automatic generation of lua_CFunction, and optionnal object oriented structures to wrap up the Lua C API concepts.  
 
 
 ## **Introduction**
@@ -62,7 +65,9 @@ That way it may be used entirely or partially in more demanding projects or at l
 
 ## **Dependencies**
 
-Lua 5.3.5 and C++ 17 are required.
+Lua 5.3.5 and C++ 17 are required.  
+The boost preprocessor extension, packaged with the library, is an optionnal requirement only for the initializer generation feature.  
+So far the library was successfully compiled and tested on **Clang** (for Android), **GCC** and **MSVC**.
 
 ## **Documentation and examples**
 
@@ -98,23 +103,16 @@ There is two ways to bind both classic functions and member functions, and the f
 >     return val;
 > }
 >
-> // The function adapter template will provide a lua_CFunction but requires
-> // all these parameters in the right order.
-> // 1. The function pointer type.
-> // 2. The function address.
-> // 3. The return type (primitive type, custom types or void).
-> // 4. A variadic list of arguments types in order.
-> // Of course the test_template here is just an example.
-> lua_CFunction f =  lua_bender::function<int(*)(const int&), test_template<int>, int, const int&>::adapter
+> // The function adapter template will provide a lua_CFunction wrapping the call of the previous funcion.
+> // Arguments and returned value are deduced from the pointer and there is nothing more to do.
+> lua_CFunction f =  lua_bender::function<test_template<int>>::adapter;
 > ```
 
-This approach exposes already two drawbacks, it remains quite technical since it forces the user to know the underlying function pointer systems, and it is quite verbose.
-
-This is why a set of macros are provided which only use function addresses and its signature as input.  
-Applying the macro system to the previous example we obtain the following.
+This approach remains a bit technical and repetitive as the template must to be used directly and any change in the API would imply some refactory on the user side.  
+Thus to provide some "future proofness", a macro is provided as a last layer of abstraction.
 
 > ```cpp
-> lua_CFunction f = lua_bender_function(test_template<int>, int, const int&);
+> lua_CFunction f = lua_bender_function(test_template<int>);
 > ```
 
 #### **b) Member functions**
@@ -134,20 +132,14 @@ Member functions use the same logic with another template system that will also 
 > };
 >
 > // Using the template API
-> // 1. The structure/class type.
-> // 2. The function pointer type.
-> // 3. The function address.
-> // 4. The return type (primitive type, custom types or void).
-> // 5. A variadic list of arguments types in order.
-> // Of course the test_template here is just an example.
-> lua_CFunction tp_f1 = lua_bender::member_function<test_struct, void(test_struct::*)(int), &test_struct::some_func1, void, int>
+> lua_CFunction tp_f1 = lua_bender::member_function<test_struct::some_func1>::adapter;
 >
 > // Using the macros
-> lua_CFunction f1 = lua_bender_member_function(test_struct, some_func_1, void, int);
-> lua_CFunction f2 = lua_bender_const_member_function(test_struct, some_func_2, float);
+> lua_CFunction f1 = lua_bender_member_function(test_struct::some_func_1);
+> lua_CFunction f2 = lua_bender_const_member_function(test_struct::some_func_2);
 >
 > // Static functions fit the classic function category
-> lua_CFunction sf1 = lua_bender_function(test_struct::some_static_func, void, float, double);
+> lua_CFunction sf1 = lua_bender_function(test_struct::some_static_func);
 > ```
 
 This part of the API can be used alone as is to build your own class bindings, but Lua Bender also provides helpers to wrap some more concepts of the C API that we will describe in the following part.
@@ -165,7 +157,7 @@ On the C/C++ side of things, **metatables** can be combined with another Lua dat
 These last are a way to pass pointers to some data to the Lua language and, using a metatable containing member functions bindings,
 conveniently create, use and garbage collect C/C++ data structures.
 
-Lua Bender thus provides several temaplates for both of them and some helpers.  
+Lua Bender thus provides several templates for both of them and some helpers.  
 
   - The **user_data** class is the wrapper itself.  
     This template expends the previous function binding system and allows the use of other types than the primitive ones for both parameters and return values.  
@@ -193,12 +185,12 @@ Lua Bender thus provides several temaplates for both of them and some helpers.
 
   - This second template is a helper that provides a static string name for every C/C++ type defined by the user.  
     Indeed, Lua identifies types with string names and Lua bender handles this need with the **user_data_type_name** class.  
-    The **REGISTER_LUA_BENDER_UDATA_TYPE_NAME** macro is a shorthand for both defining the template for a given type, and setting the name.  
+    The **lua_bender_register_user_data_name** macro is a shorthand for both defining the template for a given type, and setting the name.  
     Pairing a class to its Lua name is done out of any function body like this.  
       > ```cpp
       > template<> std::string lua_bender::user_data_type_name<test_struct>::s_name = "test_struct";
       > // or for short
-      > REGISTER_LUA_BENDER_UDATA_TYPE_NAME(test_struct "test_struct");
+      > lua_bender_register_user_data_name(test_struct "test_struct");
       > ```
 
     And in C/C++ pushing manually a **user_data** with the according metatable name is done as follow.  
@@ -218,7 +210,7 @@ Lua Bender thus provides several temaplates for both of them and some helpers.
   Here is an example of binding for the previously defined **test_strust**.
     > ```cpp
     > // Set the Lua name of the test_struct type to "test_struct".
-    > REGISTER_LUA_BENDER_UDATA_TYPE_NAME(test_struct, "test_struct");
+    > lua_bender_register_user_data_name(test_struct, "test_struct");
     > // Fill the metatable with some functions bindings.
     > const std::shared_ptr<lua_metatable> test_struct_metatable(
     >     new lua_class_metatable<test_struct>({
@@ -226,9 +218,9 @@ Lua Bender thus provides several temaplates for both of them and some helpers.
     >         {"new",  lua_class_metatable<test_struct>::create_instance<>},
     >         {"__gc", lua_class_metatable<test_struct>::destroy_instance},
     >         // Example of function bindings (member and static).
-    >         {"some_func_1", lua_bender_member_function(test_struct, some_func_1, void, int)},
-    >         {"some_func_2", lua_bender_const_member_function(test_struct, get_str_value, float)},
-    >         {"static_function", lua_bender_function(test_struct::static_function, int, float, double)}
+    >         {"some_func_1",     lua_bender_member_function(test_struct::some_func_1)},
+    >         {"some_func_2",     lua_bender_const_member_function(test_struct::get_str_value)},
+    >         {"static_function", lua_bender_function(test_struct::static_function)}
     >     })
     > );
     >
@@ -248,7 +240,7 @@ Lua Bender thus provides several temaplates for both of them and some helpers.
 
   If by any mean this structure doesn't meet your needs, the **lua_metatable** interface defines the mendatory services that any implementation must provide in order to work with other components from this API.  
 
-### **3. Accessors and mutators generators**
+### **3. Accessors, mutators and initializers generators**
 
 Direct access to any data member of a C/C++ structure in Lua is impossible.  
 In the same way there doesn't seem to be as much flexibility in Lua for setting whole or parts of a given object as there is in C++.  
@@ -256,22 +248,24 @@ In the same way there doesn't seem to be as much flexibility in Lua for setting 
 Solving this problem can be done simply by creating the corresponding "get" and "set" functions and binding them to lua using the previous mechaninics.  
 However some may want to keep their code clean of those potentially useless functions for their C/C++ API.  
 
-As an experiment, a set of 3 macros using templates is provided to generate either accessor, mutator or initializers.  
-Using pointer arithmetic, these new functions, available only to Lua, aim to improve greatly the flexibility of the Lua side while keeping the C/C++ API concise.  
+This is where this experimental set of templates comes in.  
+The goal is to generate either an accessor, mutator or initializer on demand, and wrap it in a lua_CFunction in the same operation.  
 
-These macros can be use as following to complete the previous test_struct binding example.  
+These templates are much more technical to use than the previous ones, since they rely on either pointer arithmetics or data member pointers.  
+So then again a set of macros is provided to simplify things and can be used as below with the previous example.  
+
 > ```cpp
-> REGISTER_LUA_BENDER_UDATA_TYPE_NAME(test_struct, "test_struct");
+> // The instantiate macro is required for MSVC only.
+> lua_bender_register_user_data_name(test_struct, "test_struct");
+> lua_bender_instantiate_initializer(test_struct, m_str_value, m_int_value, m_number_value, m_double_value);
 > const std::shared_ptr<lua_metatable> test_struct_metatable(
 >     new lua_class_metatable<test_struct>({
 >         // ... All the previous bindings ...
 >         // An example of complete data set.
->         {"set", lua_bender_generate_initializer(test_struct, std::string, int, float, double)},
->         // And here is a partial one.
->         {"set_part", lua_bender_generate_initializer(test_struct, std::string, int)},
+>         {"set", lua_bender_adapted_initializer(test_struct, m_str_value, m_int_value, m_number_value, m_double_value)},
 >         // Now the accessor and mutator for the m_double_value.
->         {"get_double_value", lua_bender_generate_accessor(test_struct, double, m_double_value)},
->         {"set_double_value", lua_bender_generate_mutator(test_struct, double, m_double_value)}
+>         {"get_double_value", lua_bender_generate_accessor(test_struct, m_double_value)},
+>         {"set_double_value", lua_bender_generate_mutator(test_struct, m_double_value)}
 >     })
 > );
 > ```
@@ -280,10 +274,16 @@ Which then give later in Lua.
 
 > ```lua
 > local var = test_struct.new()
-> test_struct.set(var, "FINDING_NAMES_IS_BORING", 2, 4.0, 8.0)
+> test_struct.set(var, "ObjectName", 2, 4.0, 8.0)
 > test_struct.set_double_value(var, 42.0)
 > print(test_struct.get_double_value(var))
 > ```
+
+It is worth remembering that the **lua_bender_instantiate_initializer** macro is only required when using the **lua_bender_adapted_initializer** one to generate initializers on **MSVC**.  
+It seems that the compiler has troubles with some nested templates in this scenario and thus each initializer must be instanced **just once before use**.  
+Of course each different combination of parameters generate a different initializer that must be also instantiated.  
+
+Finally the initializer generation is the only feature that requires the of a third party (the boost pre-processor) which is pakcaged with this project for convenience (at least for now).
 
 ### **4. Lua library**
 
@@ -300,9 +300,9 @@ Here is an example using the previously defined metatable and the template funct
 >     {test_struct_metatable.get()},
 >     // Finally additional independent functions can be added here
 >     {
->         {"test_template_int", lua_bender_function(test_template<int>, int, const int&)},
->         {"test_template_float", lua_bender_function(test_template<float>, float, const float&)},
->         {"test_template_str",   lua_bender_function(test_template<std::string>, std::string, const std::string&)}
+>         {"test_template_int",   lua_bender_function(test_template<int>)},
+>         {"test_template_float", lua_bender_function(test_template<float>)},
+>         {"test_template_str",   lua_bender_function(test_template<std::string>)}
 >     }
 > ));
 >

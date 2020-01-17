@@ -6,15 +6,8 @@
 #include "basis.hpp"
 #include "functions.hpp"
 #include "user_data.hpp"
-#include <memory>
 #include <unordered_map>
-#include <string>
 #include <vector>
-
-/** Macro shortcut to create a filled metatable and also register the type string name to the user data system. */
-#define CREATE_LUA_BENDER_CLASS_METATABLE(type, type_name, table_var_name, ...)\
-    REGISTER_LUA_BENDER_UDATA_TYPE_NAME(type, type_name);\
-    const std::shared_ptr<const lua_metatable> table_var_name(new lua_class_metatable<type>({__VA_ARGS__}))
 
 namespace lua_bender{
     struct lua_metatable{
@@ -53,7 +46,8 @@ namespace lua_bender{
 
 
         static int destroy_instance(lua_State* L){
-            user_data* udata = user_data::check(L, 1);
+            int first_index = 1;
+            user_data* udata = user_data::check(L, first_index);
             if( udata != nullptr ){
                 if( udata->m_garbage_collected && udata->m_data != nullptr ){
                     delete static_cast<C*>(udata->m_data);

@@ -4,27 +4,40 @@
 
 #include <lua.hpp>
 #include <memory>
-#include <functional>
-#include <tuple>
-#include <iostream>
+#include <string>
 #include <type_traits>
 
 #pragma warning(push)
 // Disable possible loss of data warning
 #pragma warning(disable: 4244)
 
-#define LUA_BENDER_ERROR(msg) std::cerr << "[LUA_BENDER_ERROR] " << std::endl\
-    << "file : " << __FILE__ << std::endl\
-    << "line " << __LINE__ << " in " << __func__ << "()"\
-    << std::endl << msg << std::endl;\
-    exit(EXIT_FAILURE)
 
-#define LUA_BENDER_WARNING(msg) std::cerr << "[LUA_BENDER_WARNING] " << std::endl\
-    << "file : " << __FILE__ << std::endl\
-    << "line " << __LINE__ << " in " << __func__ << "()"\
-    << std::endl << msg << std::endl
 
-#define LUA_BENDER_LOG(msg) std::cout << "[LUA_BENDER] " << msg << std::endl
+
+#ifdef __ANDROID__
+    #include <android/log.h>
+    #define LUA_BENDER_ANDROID_TAG "android.lua_bender"
+    #define LUA_BENDER_LOG_ERROR(...)   __android_log_print(ANDROID_LOG_ERROR, LUA_BENDER_ANDROID_TAG, __VA_ARGS__)
+    #define LUA_BENDER_LOG_WARNING(...) __android_log_print(ANDROID_LOG_WARN,  LUA_BENDER_ANDROID_TAG, __VA_ARGS__)
+#else
+    #include <stdio.h>
+    #define LUA_BENDER_LOG_ERROR(...)   fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n")
+    #define LUA_BENDER_LOG_WARNING(...) fprintf(stdout, __VA_ARGS__); fprintf(stdout, "\n")
+#endif
+
+
+#ifdef NDEBUG
+    #define LUA_BENDER_LOG_DEBUG(...)
+    #define LUA_BENDER_LOG_INFO(...)
+#else
+    #ifdef __ANDROID__
+        #define LUA_BENDER_LOG_DEBUG(...) __android_log_print(ANDROID_LOG_DEBUG, LUA_BENDER_ANDROID_TAG, __VA_ARGS__)
+        #define LUA_BENDER_LOG_INFO(...)  __android_log_print(ANDROID_LOG_INFO,  LUA_BENDER_ANDROID_TAG, __VA_ARGS__)
+    #else
+        #define LUA_BENDER_LOG_DEBUG(...) fprintf(stdout, __VA_ARGS__); fprintf(stdout, "\n")
+        #define LUA_BENDER_LOG_INFO(...)  fprintf(stdout, __VA_ARGS__); fprintf(stdout, "\n")
+    #endif
+#endif
 
 
 namespace lua_bender{

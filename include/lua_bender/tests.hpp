@@ -22,19 +22,19 @@ namespace lua_bender{
 
 
         test_struct(): m_str_value(), m_int_value(), m_number_value(){
-            std::cout << "Default constructor is called" << std::endl;
+            LUA_BENDER_LOG_INFO("Default constructor is called");
         }
 
         test_struct(const std::string& str, int i, float f): m_str_value(str), m_int_value(i), m_number_value(f){
-            std::cout << "Complete constructor is called : " << str << " " << i << " " << f << std::endl;
+            LUA_BENDER_LOG_INFO("Complete constructor is called : [\"%s\", %i, %f]", str.c_str(), i, f);
         }
 
         virtual ~test_struct(){
-            std::cout << "Destructor called" << std::endl;
+            LUA_BENDER_LOG_INFO("Destructor called");
         }
 
         static void s_function(){
-            std::cout << "This is test_struct s_function" << std::endl;
+            LUA_BENDER_LOG_INFO("This is test_struct s_function");
         }
 
         static int s_function2(float val1, double val2){
@@ -120,14 +120,14 @@ namespace lua_bender{
                                        "test_object:set_str_value( \"This is another test string.\" )\n"
                                        "test_object_2:test_modify_ptr(test_object)\n"
                                        "test_object_2:test_modify_ref(test_object)\n"
-                                       "test_struct.set_double_value(test_object_2, 66.6)\n"
+                                       "test_struct.set_double_value(test_object, 66.6)\n"
                                        "test_struct.set(test_object_2, \"Object2\", 2, 4.0, 8.0)\n"
 
                                        "print(\"TESTING ACCESSORS\")\n"
-                                       "print(test_object:get_int_value())\n"
-                                       "print(test_object:get_number_value())\n"
-                                       "print(test_object:get_str_value())\n"
-                                       "print(test_object:test_return_ref())\n"
+                                       "print(test_object_2:get_int_value())\n"
+                                       "print(test_object_2:get_number_value())\n"
+                                       "print(test_object_2:get_str_value())\n"
+                                       "print(test_object_2:test_return_ref())\n"
                                        "print(test_struct.get_double_value(test_object_2))\n"
 
 
@@ -136,43 +136,44 @@ namespace lua_bender{
                                        "print(test_struct.__name)\n"
 
                                        "print(\"TESTING THE RETURNED VALUES.\")"
-                                       "return test_object, test_object_2, 13, 53, \"LOL\"\n"
+                                       "return test_object, 13, 53, \"LOL\"\n"
 
                                        "end\n";
 
 
-    REGISTER_LUA_BENDER_UDATA_TYPE_NAME(test_struct, "test_struct");
+    lua_bender_register_user_data_name(test_struct, "test_struct");
+    lua_bender_instantiate_initializer(test_struct, m_str_value, m_int_value, m_number_value, m_double_value);
     const std::shared_ptr<lua_metatable> test_struct_metatable(new lua_class_metatable<test_struct>({
                         {"new",              lua_class_metatable<test_struct>::create_instance<>},
                         {"__gc",             lua_class_metatable<test_struct>::destroy_instance},
-                        {"set",              lua_bender_generate_initializer(test_struct, std::string, int, float, double)},
-                        {"set_str_value",    lua_bender_member_function(test_struct, set_str_value, void, const std::string&)},
-                        {"set_int_value",    lua_bender_member_function(test_struct, set_int_value, void, int)},
-                        {"set_number_value", lua_bender_member_function(test_struct, set_number_value, void, float)},
+                        {"set",              lua_bender_adapted_initializer(test_struct, m_str_value, m_int_value, m_number_value, m_double_value)},
+                        {"set_str_value",    lua_bender_member_function(test_struct::set_str_value)},
+                        {"set_int_value",    lua_bender_member_function(test_struct::set_int_value)},
+                        {"set_number_value", lua_bender_member_function(test_struct::set_number_value)},
 
-                        {"get_str_value",    lua_bender_const_member_function(test_struct, get_str_value, const std::string&)},
-                        {"get_number_value", lua_bender_const_member_function(test_struct, get_number_value, float)},
-                        {"get_int_value",    lua_bender_const_member_function(test_struct, get_int_value, int)},
+                        {"get_str_value",    lua_bender_member_function(test_struct::get_str_value)},
+                        {"get_number_value", lua_bender_member_function(test_struct::get_number_value)},
+                        {"get_int_value",    lua_bender_member_function(test_struct::get_int_value)},
 
-                        {"test_modify_ptr",  lua_bender_member_function(test_struct, test_modify_ptr, void, test_struct*)},
-                        {"test_modify_ref",  lua_bender_member_function(test_struct, test_modify_ref, void, test_struct&)},
-                        {"test_return_ref",  lua_bender_member_function(test_struct, test_return_ref, test_struct&)},
+                        {"test_modify_ptr",  lua_bender_member_function(test_struct::test_modify_ptr)},
+                        {"test_modify_ref",  lua_bender_member_function(test_struct::test_modify_ref)},
+                        {"test_return_ref",  lua_bender_member_function(test_struct::test_return_ref)},
 
-                        {"s_function",       lua_bender_function(test_struct::s_function, void)},
-                        {"s_function2",      lua_bender_function(test_struct::s_function2, int, float, double)},
-                        {"get_double_value", lua_bender_generate_accessor(test_struct, double, m_double_value)},
-                        {"set_double_value", lua_bender_generate_mutator(test_struct, double, m_double_value)}
+                        {"s_function",       lua_bender_function(test_struct::s_function)},
+                        {"s_function2",      lua_bender_function(test_struct::s_function2)},
+                        {"get_double_value", lua_bender_generate_accessor(test_struct, m_double_value)},
+                        {"set_double_value", lua_bender_generate_mutator(test_struct, m_double_value)}
                     }));
 
 
     const std::shared_ptr<lua_library> test_lib(new lua_library(
         {test_struct_metatable.get()},
         {
-            {"test_template_int",       lua_bender::function<int(*)(const int&), test_template<int>, int, const int&>::adapter},
-            {"test_template_float",     lua_bender_function(test_template<float>, float, const float&)},
-            {"test_template_str",       lua_bender_function(test_template<std::string>, std::string, const std::string&)},
-            {"test_struct_s_function",  lua_bender_function(test_struct::s_function, void)},
-            {"test_struct_s_function2", lua_bender_function(test_struct::s_function2, int, float, double)}
+            {"test_template_int",       lua_bender::function<test_template<int>>::adapter},
+            {"test_template_float",     lua_bender::function<test_template<float>>::adapter},
+            {"test_template_str",       lua_bender::function<test_template<std::string>>::adapter},
+            {"test_struct_s_function",  lua_bender::function<test_struct::s_function>::adapter},
+            {"test_struct_s_function2", lua_bender::function<test_struct::s_function2>::adapter}
         }
     ));
 
@@ -191,7 +192,7 @@ namespace lua_bender{
 
         // Accessing the results of the test script.
         std::vector<lua_any_t> res;
-        lua_any_t::get_results(L, res);
+        lua_bender::lua_any_t::get_results(L, res);
 
         // Closing the context.
         lua_close(L);
@@ -202,11 +203,7 @@ namespace lua_bender{
             val.log_type_name();
             if( val.m_lua_type == LUA_TUSERDATA ){
                 test_struct* data = static_cast<test_struct*>(val.m_udata);
-                std::cout << data->get_str_value() << " "
-                          << data->get_int_value() << " "
-                          << data->get_number_value() << " "
-                          << data->m_double_value
-                          << std::endl;
+                LUA_BENDER_LOG_INFO("test_struct : (\"%s\", %d, %f, %f)", data->get_str_value().c_str(), data->get_int_value(), data->get_number_value(), data->m_double_value);
                 delete data;
             }
         }

@@ -4,7 +4,7 @@
 
 #include "basis.hpp"
 
-#define REGISTER_LUA_BENDER_UDATA_TYPE_NAME(type, name)\
+#define lua_bender_register_user_data_name(type, name)\
     template<> std::string lua_bender::user_data_type_name<type>::s_name = name
 
 

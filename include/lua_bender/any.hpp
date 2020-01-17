@@ -4,6 +4,7 @@
 
 #include "basis.hpp"
 #include "user_data.hpp"
+#include <vector>
 
 
 namespace lua_bender{
@@ -28,16 +29,16 @@ namespace lua_bender{
                 res[i].m_lua_type = type;
                 switch( type ){
                     case LUA_TNIL:
-                        LUA_BENDER_ERROR("lua_bender::script::get_results is acessing an unexpected nil value");
+                        LUA_BENDER_LOG_ERROR("lua_bender::script::get_results is acessing an unexpected nil value");
                         break;
                     case LUA_TNONE:
-                        LUA_BENDER_ERROR("lua_bender::script::get_results is acessing an unexpected no type value");
+                        LUA_BENDER_LOG_ERROR("lua_bender::script::get_results is acessing an unexpected no type value");
                         break;
                     case LUA_TNUMBER:
                         res[i].m_number = luaL_checknumber(L, i+1);
                         break;
                     case LUA_TTABLE:
-                        LUA_BENDER_ERROR("lua_bender::script::get_results is accessing a table which is not supported for now.");
+                        LUA_BENDER_LOG_ERROR("lua_bender::script::get_results is accessing a table which is not supported for now.");
                         break;
                     case LUA_TSTRING:
                         res[i].m_str = luaL_checkstring(L, i+1);
@@ -51,16 +52,16 @@ namespace lua_bender{
                         }
                         break;
                     case LUA_TLIGHTUSERDATA:
-                        LUA_BENDER_ERROR("lua_bender::script::get_results is accessing a light user data which is not supported.");
+                        LUA_BENDER_LOG_ERROR("lua_bender::script::get_results is accessing a light user data which is not supported.");
                         break;
                     case LUA_TTHREAD:
-                        LUA_BENDER_ERROR("lua_bender::script::get_results is accessing a thread which is not supported for now.");
+                        LUA_BENDER_LOG_ERROR("lua_bender::script::get_results is accessing a thread which is not supported for now.");
                         break;
                     case LUA_TBOOLEAN:
                         res[i].m_number = lua_toboolean(L, i+1);
                         break;
                     case LUA_TFUNCTION:
-                        LUA_BENDER_ERROR("lua_bender::script::get_results is accessing a function which is not supported for now.");
+                        LUA_BENDER_LOG_ERROR("lua_bender::script::get_results is accessing a function which is not supported for now.");
                         break;
                 }
             }
@@ -70,34 +71,34 @@ namespace lua_bender{
         void log_type_name() const{
             switch( m_lua_type ){
                 case LUA_TNIL:
-                    LUA_BENDER_LOG("any is type NIL");
+                    LUA_BENDER_LOG_INFO("any is type NIL");
                     break;
                 case LUA_TNONE:
-                    LUA_BENDER_LOG("any is type NONE");
+                    LUA_BENDER_LOG_INFO("any is type NONE");
                     break;
                 case LUA_TNUMBER:
-                    LUA_BENDER_LOG("any is type NUMBER: " << m_number);
+                    LUA_BENDER_LOG_INFO("any is type NUMBER: %f", m_number);
                     break;
                 case LUA_TTABLE:
-                    LUA_BENDER_LOG("any is type TABLE");
+                    LUA_BENDER_LOG_INFO("any is type TABLE");
                     break;
                 case LUA_TSTRING:
-                    LUA_BENDER_LOG("any is type STRING: \"" << m_str << '"');
+                    LUA_BENDER_LOG_INFO("any is type STRING: \"%s\"", m_str.c_str());
                     break;
                 case LUA_TUSERDATA:
-                    LUA_BENDER_LOG("any is type USER DATA");
+                    LUA_BENDER_LOG_INFO("any is type USER DATA");
                     break;
                 case LUA_TLIGHTUSERDATA:
-                    LUA_BENDER_LOG("any is type LIGHT USER DATA");
+                    LUA_BENDER_LOG_INFO("any is type LIGHT USER DATA");
                     break;
                 case LUA_TTHREAD:
-                    LUA_BENDER_LOG("any is type THREAD");
+                    LUA_BENDER_LOG_INFO("any is type THREAD");
                     break;
                 case LUA_TBOOLEAN:
-                    LUA_BENDER_LOG("any is type BOOLEAN: " << m_number);
+                    LUA_BENDER_LOG_INFO("any is type BOOLEAN: %f", m_number);
                     break;
                 case LUA_TFUNCTION:
-                    LUA_BENDER_LOG("any is type FUNCTION");
+                    LUA_BENDER_LOG_INFO("any is type FUNCTION");
                     break;
             }
         }
